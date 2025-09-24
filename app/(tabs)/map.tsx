@@ -1,15 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWorkerData } from '../../contexts/worker/WorkerDataContext';
 import { useLocationTracking } from '../../hooks/useLocationTracking';
 import { useTheme } from '../../contexts/theme/ThemeContext';
-import { LocationService } from '../../services/location/LocationService';
+import CustomHeader from '../../components/navigation/CustomHeader';
 import InteractiveMap from '../../components/ui/InteractiveMap';
 import RouteInfo from '../../components/ui/RouteInfo';
+import {
+  MapPin,
+  Navigation,
+  RefreshCw,
+  Target,
+  Route,
+  Clock,
+  BarChart3,
+  CheckCircle2,
+  Play,
+  AlertTriangle,
+  Zap
+} from 'lucide-react-native';
 
 export default function MapScreen() {
   const { worker, assignedTasks, activeTask } = useWorkerData();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { 
     currentLocation, 
     isTracking, 
@@ -21,6 +36,10 @@ export default function MapScreen() {
   const [selectedRoute, setSelectedRoute] = useState<'optimized' | 'shortest'>('optimized');
   const [mapTasks, setMapTasks] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
+
+  // Calculate safe bottom padding for tab bar
+  const tabBarHeight = 80;
+  const safeBottomPadding = Math.max(insets.bottom + 65, tabBarHeight);
 
   useEffect(() => {
     setupMapData();
@@ -42,16 +61,16 @@ export default function MapScreen() {
     // Create optimized route through Jabalpur
     if (currentLocation && taskMarkers.length > 0) {
       const optimizedRoute = [
-        { lat: currentLocation.latitude, lng: currentLocation.longitude }, // Start at worker location
+        { lat: currentLocation.latitude, lng: currentLocation.longitude },
         { lat: 23.1825, lng: 79.9870 }, // Collection Point A
         { lat: 23.1795, lng: 79.9880 }, // Collection Point B  
         { lat: 23.1835, lng: 79.9845 }, // Residential Zone
         { lat: 23.1751, lng: 79.9851 }, // Waste Processing Plant
-        ...taskMarkers // Include all task locations
+        ...taskMarkers
       ];
 
       const alternateRoute = [
-        { lat: currentLocation.latitude, lng: currentLocation.longitude }, // Start at worker location
+        { lat: currentLocation.latitude, lng: currentLocation.longitude },
         { lat: 23.1815, lng: 79.9864 }, // City Center
         { lat: 23.1795, lng: 79.9880 }, // Collection Point B
         { lat: 23.1825, lng: 79.9870 }, // Collection Point A
@@ -108,7 +127,10 @@ export default function MapScreen() {
   const handleRefreshLocation = async () => {
     const location = await getCurrentLocation();
     if (location) {
-      Alert.alert('Location Updated', `New coordinates: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`);
+      Alert.alert(
+        'Location Updated', 
+        `New coordinates: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+      );
     }
   };
 
@@ -139,9 +161,7 @@ export default function MapScreen() {
       Alert.alert(
         '📍 Route Stop',
         `${stop.address}\n\nTime: ${stop.time}\nTask: ${stop.taskType}\nDuration: ${stop.estimatedDuration}`,
-        [
-          { text: 'OK' }
-        ]
+        [{ text: 'OK' }]
       );
     }
   };
@@ -158,226 +178,219 @@ export default function MapScreen() {
     type: 'worker' as const
   };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* Header */}
-      <View style={{
-        backgroundColor: theme.colors.primary,
-        paddingTop: Platform.OS === 'ios' ? 50 : 30,
-        paddingBottom: 20,
-        paddingHorizontal: 20
-      }}>
-        <Text style={{
-          color: 'white',
-          fontSize: 24,
-          fontWeight: 'bold',
-          marginBottom: 5
-        }}>
-          🗺️ Route & Navigation
-        </Text>
-        <Text style={{
-          color: 'rgba(255,255,255,0.8)',
-          fontSize: 16
-        }}>
-          {isTracking ? '📍 Location tracking active' : '📍 Location tracking off'}
-        </Text>
-      </View>
+  const handleMenuPress = () => console.log('Map menu pressed');
+  const handleSettingsPress = () => console.log('Map settings pressed');
 
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        <View style={{ padding: 20 }}>
+  return (
+    <View className="flex-1 bg-background">
+      <CustomHeader
+        title="Route & Navigation"
+        subtitle={isTracking ? 'Location tracking active' : 'Location tracking off'}
+        showNotifications={false}
+        showSettings={true}
+        showConnectionStatus={true}
+        onMenuPress={handleMenuPress}
+        onSettingsPress={handleSettingsPress}
+      />
+
+      <ScrollView 
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: (safeBottomPadding + 20) * 2 }}
+      >
+        <View className="p-5">
           {/* Current Status Card */}
-          <View style={{
-            backgroundColor: theme.colors.card,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20,
-            shadowColor: theme.colors.shadow,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3
-          }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.colors.text }}>
-                📍 Current Status
-              </Text>
+          <View className="bg-card rounded-2xl p-4 mb-5 shadow-sm border border-border">
+            <View className="flex-row justify-between items-center mb-4">
+              <View className="flex-row items-center">
+                <MapPin size={20} color={theme.colors.text} />
+                <Text className="text-lg font-bold text-text ml-2">
+                  Current Status
+                </Text>
+              </View>
               <TouchableOpacity 
                 onPress={handleRefreshLocation}
-                style={{
-                  backgroundColor: theme.colors.primary,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 8
-                }}
+                className="bg-primary px-3 py-2 rounded-lg flex-row items-center active:scale-95"
+                activeOpacity={0.8}
               >
-                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>📡 Refresh</Text>
+                <RefreshCw size={14} color="white" />
+                <Text className="text-white text-xs font-semibold ml-1">Refresh</Text>
               </TouchableOpacity>
             </View>
 
             {currentLocation ? (
-              <>
-                <Text style={{ color: theme.colors.text, marginBottom: 4 }}>
-                  📍 Lat: {currentLocation.latitude.toFixed(6)}
-                </Text>
-                <Text style={{ color: theme.colors.text, marginBottom: 8 }}>
-                  📍 Lng: {currentLocation.longitude.toFixed(6)}
-                </Text>
-                <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>
-                  Accuracy: ±{currentLocation.accuracy?.toFixed(0) || 'Unknown'}m
-                </Text>
-                <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>
-                  Updated: {new Date(currentLocation.timestamp).toLocaleTimeString()}
-                </Text>
-              </>
+              <View className="space-y-2">
+                <View className="flex-row items-center">
+                  <MapPin size={14} color={theme.colors.textSecondary} />
+                  <Text className="text-text ml-2 text-sm">
+                    Lat: {currentLocation.latitude.toFixed(6)}
+                  </Text>
+                </View>
+                <View className="flex-row items-center">
+                  <MapPin size={14} color={theme.colors.textSecondary} />
+                  <Text className="text-text ml-2 text-sm">
+                    Lng: {currentLocation.longitude.toFixed(6)}
+                  </Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Target size={14} color={theme.colors.textSecondary} />
+                  <Text className="text-textSecondary text-xs ml-2">
+                    Accuracy: ±{currentLocation.accuracy?.toFixed(0) || 'Unknown'}m
+                  </Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Clock size={14} color={theme.colors.textSecondary} />
+                  <Text className="text-textSecondary text-xs ml-2">
+                    Updated: {new Date(currentLocation.timestamp).toLocaleTimeString()}
+                  </Text>
+                </View>
+              </View>
             ) : (
-              <Text style={{ color: theme.colors.textSecondary }}>
-                {locationError || 'Location not available'}
-              </Text>
+              <View className="flex-row items-center py-4">
+                <Navigation size={20} color={theme.colors.textSecondary} />
+                <Text className="text-textSecondary ml-3">
+                  {locationError || 'Location not available'}
+                </Text>
+              </View>
             )}
 
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginTop: 12,
-              padding: 8,
-              backgroundColor: worker?.isOnDuty ? theme.colors.success + '20' : theme.colors.textSecondary + '20',
-              borderRadius: 8
-            }}>
-              <Text style={{
-                color: worker?.isOnDuty ? theme.colors.success : theme.colors.textSecondary,
-                fontWeight: '600'
-              }}>
-                {worker?.isOnDuty ? '🟢 On Duty - Tracking Active' : '🔴 Off Duty - Limited Tracking'}
+            {/* Duty Status Badge */}
+            <View className={`flex-row items-center mt-3 p-3 rounded-lg ${
+              worker?.isOnDuty ? 'bg-success/20' : 'bg-textSecondary/20'
+            }`}>
+              <View className={`w-2 h-2 rounded-full mr-3 ${
+                worker?.isOnDuty ? 'bg-success' : 'bg-textSecondary'
+              }`} />
+              <Text className={`font-semibold text-sm ${
+                worker?.isOnDuty ? 'text-success' : 'text-textSecondary'
+              }`}>
+                {worker?.isOnDuty ? 'On Duty - Tracking Active' : 'Off Duty - Limited Tracking'}
               </Text>
             </View>
           </View>
 
-          {/* Interactive Map */}
-          <View style={{
-            backgroundColor: theme.colors.card,
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 20,
-            shadowColor: theme.colors.shadow,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3
-          }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: 'bold',
-              color: theme.colors.text,
-              marginBottom: 16
-            }}>
-              🗺️ Live Map - Jabalpur
-            </Text>
+          {/* Interactive Map Section */}
+          <View className="bg-card rounded-2xl p-4 mb-5 shadow-sm border border-border">
+            <View className="flex-row items-center mb-4">
+              <Route size={20} color={theme.colors.text} />
+              <Text className="text-lg font-bold text-text ml-2">
+                Live Map - Jabalpur
+              </Text>
+            </View>
 
-            <InteractiveMap
-              currentLocation={workerLocation}
-              tasks={mapTasks}
-              routes={routes}
-              onTaskSelect={handleTaskSelect}
-              height={250}
-            />
+            {/* Map Container */}
+            <View className="rounded-xl overflow-hidden mb-3">
+              <InteractiveMap
+                currentLocation={workerLocation}
+                tasks={mapTasks}
+                routes={routes}
+                onTaskSelect={handleTaskSelect}
+                height={250}
+              />
+            </View>
 
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              marginTop: 12,
-              gap: 8
-            }}>
+            {/* Route Selection Buttons */}
+            <View className="flex-row gap-2">
               <TouchableOpacity
                 onPress={() => setSelectedRoute('optimized')}
-                style={{
-                  flex: 1,
-                  backgroundColor: selectedRoute === 'optimized' ? theme.colors.primary : theme.colors.background,
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: theme.colors.border
-                }}
+                className={`flex-1 py-3 px-4 rounded-lg border ${
+                  selectedRoute === 'optimized' 
+                    ? 'bg-primary border-primary' 
+                    : 'bg-background border-border'
+                }`}
+                activeOpacity={0.8}
               >
-                <Text style={{
-                  color: selectedRoute === 'optimized' ? 'white' : theme.colors.text,
-                  textAlign: 'center',
-                  fontSize: 12,
-                  fontWeight: '600'
-                }}>
-                  🎯 Optimized Route
-                </Text>
+                <View className="flex-row items-center justify-center">
+                  <Target size={14} color={selectedRoute === 'optimized' ? 'white' : theme.colors.text} />
+                  <Text className={`text-xs font-semibold ml-2 ${
+                    selectedRoute === 'optimized' ? 'text-white' : 'text-text'
+                  }`}>
+                    Optimized Route
+                  </Text>
+                </View>
               </TouchableOpacity>
               
               <TouchableOpacity
                 onPress={() => setSelectedRoute('shortest')}
-                style={{
-                  flex: 1,
-                  backgroundColor: selectedRoute === 'shortest' ? theme.colors.secondary : theme.colors.background,
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: theme.colors.border
-                }}
+                className={`flex-1 py-3 px-4 rounded-lg border ${
+                  selectedRoute === 'shortest' 
+                    ? 'bg-secondary border-secondary' 
+                    : 'bg-background border-border'
+                }`}
+                activeOpacity={0.8}
               >
-                <Text style={{
-                  color: selectedRoute === 'shortest' ? 'white' : theme.colors.text,
-                  textAlign: 'center',
-                  fontSize: 12,
-                  fontWeight: '600'
-                }}>
-                  ⚡ Shortest Route
-                </Text>
+                <View className="flex-row items-center justify-center">
+                  <Zap size={14} color={selectedRoute === 'shortest' ? 'white' : theme.colors.text} />
+                  <Text className={`text-xs font-semibold ml-2 ${
+                    selectedRoute === 'shortest' ? 'text-white' : 'text-text'
+                  }`}>
+                    Shortest Route
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Route Timeline */}
-          <RouteInfo 
-            routes={todaysRoute}
-            onStopPress={handleRouteStopPress}
-          />
+          <View className="mb-5">
+            <RouteInfo 
+              routes={todaysRoute}
+              onStopPress={handleRouteStopPress}
+            />
+          </View>
 
-          {/* Map Statistics */}
-          <View style={{
-            backgroundColor: theme.colors.card,
-            borderRadius: 12,
-            padding: 16,
-            marginTop: 20,
-            shadowColor: theme.colors.shadow,
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3
-          }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: 'bold',
-              color: theme.colors.text,
-              marginBottom: 16
-            }}>
-              📊 Today's Stats
-            </Text>
+          {/* Today's Statistics */}
+          <View className="bg-card rounded-2xl p-4 shadow-sm border border-border">
+            <View className="flex-row items-center mb-4">
+              <BarChart3 size={20} color={theme.colors.text} />
+              <Text className="text-lg font-bold text-text ml-2">
+                Today's Statistics
+              </Text>
+            </View>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.colors.success }}>2</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>Completed</Text>
+            <View className="flex-row justify-between">
+              <View className="items-center flex-1">
+                <CheckCircle2 size={20} color={theme.colors.success} className="mb-1" />
+                <Text className="text-xl font-bold text-success mb-1">2</Text>
+                <Text className="text-xs text-textSecondary text-center">Completed</Text>
               </View>
-              <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.colors.primary }}>1</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>In Progress</Text>
+              
+              <View className="items-center flex-1">
+                <Play size={20} color={theme.colors.primary} className="mb-1" />
+                <Text className="text-xl font-bold text-primary mb-1">1</Text>
+                <Text className="text-xs text-textSecondary text-center">In Progress</Text>
               </View>
-              <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.colors.warning }}>3</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>Upcoming</Text>
+              
+              <View className="items-center flex-1">
+                <AlertTriangle size={20} color={theme.colors.warning} className="mb-1" />
+                <Text className="text-xl font-bold text-warning mb-1">3</Text>
+                <Text className="text-xs text-textSecondary text-center">Upcoming</Text>
               </View>
-              <View style={{ alignItems: 'center', flex: 1 }}>
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.colors.textSecondary }}>12.5km</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>Distance</Text>
+              
+              <View className="items-center flex-1">
+                <Route size={20} color={theme.colors.textSecondary} className="mb-1" />
+                <Text className="text-xl font-bold text-textSecondary mb-1">12.5km</Text>
+                <Text className="text-xs text-textSecondary text-center">Distance</Text>
               </View>
             </View>
+
+            {/* Progress Bar */}
+            <View className="mt-4">
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-xs text-textSecondary">Route Progress</Text>
+                <Text className="text-xs font-semibold text-text">33% Complete</Text>
+              </View>
+              <View className="bg-background rounded-full h-2">
+                <View className="bg-primary rounded-full h-2 w-1/3" />
+              </View>
+            </View>
+          </View>
+
+          {/* Debug Info - Remove in production */}
+          <View className="mt-4 p-3 bg-textSecondary/10 rounded-lg">
+            <Text className="text-xs text-textSecondary text-center">
+              Safe Padding: {safeBottomPadding}px • Tab Height: {tabBarHeight}px
+            </Text>
           </View>
         </View>
       </ScrollView>

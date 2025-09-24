@@ -8,14 +8,37 @@ import {
   Switch,
   Modal,
   TextInput,
-  Platform,
   Dimensions
 } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWorkerData } from '../../contexts/worker/WorkerDataContext';
 import { useTheme } from '../../contexts/theme/ThemeContext';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
+import CustomHeader from '../../components/navigation/CustomHeader';
+import {
+  User,
+  Edit3,
+  Lock,
+  Bell,
+  Palette,
+  BarChart3,
+  HelpCircle,
+  LogOut,
+  Mail,
+  Phone,
+  MapPin,
+  Award,
+  CheckCircle2,
+  Calendar,
+  ClipboardList,
+  Sun,
+  Moon,
+  Smartphone,
+  ChevronRight,
+  X
+} from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +47,7 @@ export default function ProfileScreen() {
   const { theme, isDark, toggleTheme, themeMode, setThemeMode } = useTheme();
   const { notificationCount, clearAllNotifications } = useNotifications();
   const { syncStatus } = useOfflineSync();
+  const insets = useSafeAreaInsets();
   
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
@@ -45,6 +69,10 @@ export default function ProfileScreen() {
     dutyReminders: true,
     weeklyReports: false,
   });
+
+  // Calculate safe bottom padding for tab bar
+  const tabBarHeight = 80;
+  const safeBottomPadding = Math.max(insets.bottom + 65, tabBarHeight);
 
   const handleLogout = () => {
     Alert.alert(
@@ -69,18 +97,23 @@ export default function ProfileScreen() {
   };
 
   const handleEditProfile = async () => {
-    // Validate form
     if (!editFormData.name.trim()) {
       Alert.alert('Error', 'Name is required');
       return;
     }
-
     Alert.alert('Success', 'Profile updated successfully!');
     setShowEditModal(false);
   };
 
+  const handleLanguagePress = () => {
+    Alert.alert('Language Settings', 'Language selection feature coming soon!');
+  };
+
+  const handleThemePress = () => {
+    setShowThemeModal(true);
+  };
+
   const calculateWorkingDays = () => {
-    // Mock calculation - in real app would come from server
     return Math.floor(Math.random() * 30) + 1;
   };
 
@@ -97,25 +130,25 @@ export default function ProfileScreen() {
 
   const workerStats = [
     { 
-      icon: '📋', 
+      icon: ClipboardList, 
       title: 'Total Tasks', 
       value: assignedTasks.length + completedTasks.length,
       color: theme.colors.primary 
     },
     { 
-      icon: '✅', 
+      icon: CheckCircle2, 
       title: 'Completed', 
       value: completedTasks.length,
       color: theme.colors.success 
     },
     { 
-      icon: '🏆', 
+      icon: Award, 
       title: 'Performance', 
       value: getPerformanceRating(),
       color: theme.colors.warning 
     },
     { 
-      icon: '📅', 
+      icon: Calendar, 
       title: 'Working Days', 
       value: calculateWorkingDays(),
       color: theme.colors.secondary 
@@ -124,42 +157,42 @@ export default function ProfileScreen() {
 
   const profileOptions = [
     {
-      icon: '👤',
+      icon: Edit3,
       title: 'Edit Profile',
       subtitle: 'Update your personal information',
       action: () => setShowEditModal(true),
       color: theme.colors.primary
     },
     {
-      icon: '🔒',
+      icon: Lock,
       title: 'Change Password',
       subtitle: 'Update your account password',
       action: () => setShowPasswordModal(true),
       color: theme.colors.warning
     },
     {
-      icon: '🔔',
+      icon: Bell,
       title: 'Notification Settings',
       subtitle: `${notificationCount} unread notifications`,
       action: () => setShowSettingsModal(true),
       color: theme.colors.secondary
     },
     {
-      icon: '🎨',
+      icon: Palette,
       title: 'Theme Settings',
       subtitle: `Current: ${isDark ? 'Dark' : 'Light'} mode`,
       action: () => setShowThemeModal(true),
       color: theme.colors.primary
     },
     {
-      icon: '📊',
+      icon: BarChart3,
       title: 'Performance Report',
       subtitle: 'View your work statistics',
       action: () => Alert.alert('Performance Report', 'Feature coming soon!'),
       color: theme.colors.success
     },
     {
-      icon: '❓',
+      icon: HelpCircle,
       title: 'Help & Support',
       subtitle: 'Get help with the app',
       action: () => Alert.alert('Help & Support', 'Contact support@bin2win.com'),
@@ -167,192 +200,128 @@ export default function ProfileScreen() {
     }
   ];
 
+  const handleMenuPress = () => console.log('Profile menu pressed');
+
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <View className="flex-1 bg-background">
+      <CustomHeader
+        title="Profile"
+        subtitle="Manage your account"
+        showNotifications={false}
+        showSettings={false}
+        showConnectionStatus={false}
+        showLanguageToggle={true}
+        showThemeToggle={true}
+        onMenuPress={handleMenuPress}
+        onLanguagePress={handleLanguagePress}
+        onThemePress={handleThemePress}
+      />
+
+      <ScrollView 
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: safeBottomPadding + 20 }}
+      >
         {/* Enhanced Profile Header */}
-        <View style={{
-          backgroundColor: theme.colors.primary,
-          paddingTop: Platform.OS === 'ios' ? 60 : 40,
-          paddingBottom: 30,
-          paddingHorizontal: 20,
-          position: 'relative'
-        }}>
-          <View style={{ alignItems: 'center', marginBottom: 20 }}>
-            <View style={{
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 15,
-              borderWidth: 3,
-              borderColor: 'rgba(255,255,255,0.3)'
-            }}>
-              <Text style={{ fontSize: 40, color: 'white' }}>👷</Text>
+        <View className="bg-primary pt-8 pb-8 px-5 relative">
+          <View className="items-center mb-5">
+            <View className="w-24 h-24 rounded-full bg-white/20 items-center justify-center mb-4 border-3 border-white/30">
+              <User size={40} color="white" />
             </View>
             
-            <Text style={{
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: 'white',
-              marginBottom: 5
-            }}>
+            <Text className="text-2xl font-bold text-white mb-1">
               {worker?.name || 'Worker'}
             </Text>
             
-            <Text style={{
-              fontSize: 16,
-              color: 'rgba(255,255,255,0.8)',
-              marginBottom: 10
-            }}>
+            <Text className="text-base text-white/80 mb-3">
               {worker?.employeeId || 'N/A'} • {worker?.department || 'N/A'}
             </Text>
             
-            <View style={{
-              backgroundColor: worker?.isOnDuty ? theme.colors.success : theme.colors.textSecondary,
-              paddingHorizontal: 16,
-              paddingVertical: 6,
-              borderRadius: 15,
-              flexDirection: 'row',
-              alignItems: 'center'
-            }}>
-              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>
-                {worker?.isOnDuty ? '🟢 On Duty' : '🔴 Off Duty'}
+            <View className={`px-4 py-2 rounded-full flex-row items-center ${
+              worker?.isOnDuty ? 'bg-success' : 'bg-textSecondary'
+            }`}>
+              <View className={`w-2 h-2 rounded-full mr-2 ${
+                worker?.isOnDuty ? 'bg-white' : 'bg-white'
+              }`} />
+              <Text className="text-white text-xs font-semibold">
+                {worker?.isOnDuty ? 'On Duty' : 'Off Duty'}
               </Text>
             </View>
           </View>
 
           <TouchableOpacity 
             onPress={() => setShowEditModal(true)}
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: 20,
-              paddingVertical: 10,
-              paddingHorizontal: 20,
-              alignSelf: 'center',
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.3)'
-            }}
+            className="bg-white/20 rounded-full py-3 px-5 self-center border border-white/30 active:scale-95"
+            activeOpacity={0.8}
           >
-            <Text style={{ color: 'white', fontWeight: '600' }}>✏️ Edit Profile</Text>
+            <View className="flex-row items-center">
+              <Edit3 size={16} color="white" />
+              <Text className="text-white font-semibold ml-2">Edit Profile</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
-        <View style={{ padding: 20 }}>
+        <View className="p-5">
           {/* Stats Grid */}
-          <View style={{ marginBottom: 30 }}>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: theme.colors.text,
-              marginBottom: 15
-            }}>
+          <View className="mb-8">
+            <Text className="text-xl font-bold text-text mb-4">
               Your Performance
             </Text>
             
-            <View style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: 10
-            }}>
-              {workerStats.map((stat, index) => (
-                <View key={index} style={{
-                  backgroundColor: theme.colors.card,
-                  borderRadius: 12,
-                  padding: 15,
-                  width: (width - 50) / 2,
-                  alignItems: 'center',
-                  shadowColor: theme.colors.shadow,
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3
-                }}>
-                  <Text style={{ fontSize: 24, marginBottom: 5 }}>{stat.icon}</Text>
-                  <Text style={{
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    color: theme.colors.text,
-                    marginBottom: 2
-                  }}>
-                    {stat.value}
-                  </Text>
-                  <Text style={{
-                    fontSize: 12,
-                    color: theme.colors.textSecondary,
-                    textAlign: 'center'
-                  }}>
-                    {stat.title}
-                  </Text>
-                </View>
-              ))}
+            <View className="flex-row flex-wrap gap-3">
+              {workerStats.map((stat, index) => {
+                const IconComponent = stat.icon;
+                return (
+                  <View 
+                    key={index} 
+                    className="bg-card rounded-2xl p-4 items-center shadow-sm border border-border"
+                    style={{ width: (width - 50) / 2 }}
+                  >
+                    <IconComponent size={24} color={stat.color} className="mb-2" />
+                    <Text className="text-lg font-bold text-text mb-1">
+                      {stat.value}
+                    </Text>
+                    <Text className="text-xs text-textSecondary text-center">
+                      {stat.title}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
 
-          {/* Quick Info */}
-          <View style={{ marginBottom: 30 }}>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: theme.colors.text,
-              marginBottom: 15
-            }}>
+          {/* Account Information */}
+          <View className="mb-8">
+            <Text className="text-xl font-bold text-text mb-4">
               Account Information
             </Text>
             
-            <View style={{
-              backgroundColor: theme.colors.card,
-              borderRadius: 12,
-              padding: 16,
-              shadowColor: theme.colors.shadow,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3
-            }}>
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 12,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.colors.border
-              }}>
-                <Text style={{ fontSize: 16, marginRight: 10 }}>📧</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>Email</Text>
-                  <Text style={{ fontSize: 14, color: theme.colors.text, fontWeight: '500' }}>
+            <View className="bg-card rounded-2xl p-4 shadow-sm border border-border">
+              <View className="flex-row items-center py-3 border-b border-border">
+                <Mail size={16} color={theme.colors.textSecondary} />
+                <View className="flex-1 ml-3">
+                  <Text className="text-xs text-textSecondary">Email</Text>
+                  <Text className="text-sm text-text font-medium">
                     {worker?.email || 'Not provided'}
                   </Text>
                 </View>
               </View>
               
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 12,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.colors.border
-              }}>
-                <Text style={{ fontSize: 16, marginRight: 10 }}>📱</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>Phone</Text>
-                  <Text style={{ fontSize: 14, color: theme.colors.text, fontWeight: '500' }}>
+              <View className="flex-row items-center py-3 border-b border-border">
+                <Phone size={16} color={theme.colors.textSecondary} />
+                <View className="flex-1 ml-3">
+                  <Text className="text-xs text-textSecondary">Phone</Text>
+                  <Text className="text-sm text-text font-medium">
                     {worker?.phone || 'Not provided'}
                   </Text>
                 </View>
               </View>
               
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingVertical: 12
-              }}>
-                <Text style={{ fontSize: 16, marginRight: 10 }}>📍</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>Assigned Area</Text>
-                  <Text style={{ fontSize: 14, color: theme.colors.text, fontWeight: '500' }}>
+              <View className="flex-row items-center py-3">
+                <MapPin size={16} color={theme.colors.textSecondary} />
+                <View className="flex-1 ml-3">
+                  <Text className="text-xs text-textSecondary">Assigned Area</Text>
+                  <Text className="text-sm text-text font-medium">
                     {worker?.assignedArea || 'Not assigned'}
                   </Text>
                 </View>
@@ -361,146 +330,181 @@ export default function ProfileScreen() {
           </View>
 
           {/* Settings Options */}
-          <View style={{ marginBottom: 30 }}>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: theme.colors.text,
-              marginBottom: 15
-            }}>
+          <View className="mb-8">
+            <Text className="text-xl font-bold text-text mb-4">
               Settings & Preferences
             </Text>
             
-            {profileOptions.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={option.action}
-                style={{
-                  backgroundColor: theme.colors.card,
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  shadowColor: theme.colors.shadow,
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 2,
-                  elevation: 2
-                }}
-              >
-                <Text style={{ fontSize: 20, marginRight: 12 }}>{option.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: '600',
-                    color: theme.colors.text,
-                    marginBottom: 2
-                  }}>
-                    {option.title}
-                  </Text>
-                  <Text style={{
-                    fontSize: 12,
-                    color: theme.colors.textSecondary
-                  }}>
-                    {option.subtitle}
-                  </Text>
-                </View>
-                <Text style={{ color: theme.colors.textSecondary, fontSize: 16 }}>›</Text>
-              </TouchableOpacity>
-            ))}
+            {profileOptions.map((option, index) => {
+              const IconComponent = option.icon;
+              return (
+                <TouchableOpacity
+                  key={index}
+                  onPress={option.action}
+                  className="bg-card rounded-2xl p-4 mb-3 flex-row items-center shadow-sm border border-border active:scale-[0.98]"
+                  activeOpacity={0.8}
+                >
+                  <IconComponent size={20} color={option.color} />
+                  <View className="flex-1 ml-3">
+                    <Text className="text-base font-semibold text-text mb-1">
+                      {option.title}
+                    </Text>
+                    <Text className="text-xs text-textSecondary">
+                      {option.subtitle}
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           {/* Logout Button */}
           <TouchableOpacity 
             onPress={handleLogout}
-            style={{
-              backgroundColor: theme.colors.danger,
-              borderRadius: 12,
-              paddingVertical: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              shadowColor: theme.colors.danger,
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.2,
-              shadowRadius: 8,
-              elevation: 4
-            }}
+            className="bg-danger rounded-2xl py-4 flex-row items-center justify-center shadow-lg active:scale-[0.98]"
+            activeOpacity={0.8}
           >
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', marginLeft: 8 }}>
-              🚪 Logout
+            <LogOut size={20} color="white" />
+            <Text className="text-white text-base font-semibold ml-2">
+              Logout
             </Text>
           </TouchableOpacity>
+
+          {/* Debug Info - Remove in production */}
+          <View className="mt-4 p-3 bg-textSecondary/10 rounded-lg">
+            <Text className="text-xs text-textSecondary text-center">
+              Safe Padding: {safeBottomPadding}px • Tab Height: {tabBarHeight}px
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
       {/* Theme Settings Modal */}
       <Modal visible={showThemeModal} animationType="slide" presentationStyle="pageSheet">
-        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingHorizontal: 20,
-            paddingVertical: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.colors.border
-          }}>
+        <View className="flex-1 bg-background">
+          <View className="flex-row justify-between items-center px-5 py-4 border-b border-border">
             <TouchableOpacity onPress={() => setShowThemeModal(false)}>
-              <Text style={{ color: theme.colors.text, fontSize: 16 }}>✕</Text>
+              <X size={20} color={theme.colors.text} />
             </TouchableOpacity>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: theme.colors.text }}>
+            <Text className="text-lg font-semibold text-text">
               Theme Settings
             </Text>
-            <View style={{ width: 20 }} />
+            <View className="w-5" />
           </View>
           
-          <View style={{ padding: 20 }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.text, marginBottom: 20 }}>
+          <View className="p-5">
+            <Text className="text-base font-semibold text-text mb-5">
               Choose Theme
             </Text>
             
-            {(['light', 'dark', 'system'] as const).map((mode) => (
-              <TouchableOpacity
-                key={mode}
-                onPress={() => setThemeMode(mode)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingVertical: 16,
-                  paddingHorizontal: 16,
-                  backgroundColor: themeMode === mode ? theme.colors.primary + '20' : theme.colors.card,
-                  borderRadius: 12,
-                  marginBottom: 8,
-                  borderWidth: themeMode === mode ? 2 : 1,
-                  borderColor: themeMode === mode ? theme.colors.primary : theme.colors.border
-                }}
-              >
-                <Text style={{ fontSize: 20, marginRight: 12 }}>
-                  {mode === 'light' ? '☀️' : mode === 'dark' ? '🌙' : '📱'}
-                </Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 16,
-                    fontWeight: '600',
-                    color: theme.colors.text,
-                    marginBottom: 2
-                  }}>
-                    {mode === 'light' ? 'Light Mode' : mode === 'dark' ? 'Dark Mode' : 'System Default'}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>
-                    {mode === 'light' ? 'Always use light theme' : 
-                     mode === 'dark' ? 'Always use dark theme' : 
-                     'Follow system settings'}
-                  </Text>
-                </View>
-                {themeMode === mode && (
-                  <Text style={{ color: theme.colors.primary, fontSize: 16 }}>✓</Text>
-                )}
-              </TouchableOpacity>
-            ))}
+            {(['light', 'dark', 'system'] as const).map((mode) => {
+              const getIcon = () => {
+                switch (mode) {
+                  case 'light': return Sun;
+                  case 'dark': return Moon;
+                  case 'system': return Smartphone;
+                  default: return Sun;
+                }
+              };
+              const IconComponent = getIcon();
+
+              return (
+                <TouchableOpacity
+                  key={mode}
+                  onPress={() => setThemeMode(mode)}
+                  className={`flex-row items-center py-4 px-4 rounded-2xl mb-2 border-2 ${
+                    themeMode === mode 
+                      ? 'bg-primary/20 border-primary' 
+                      : 'bg-card border-border'
+                  }`}
+                  activeOpacity={0.8}
+                >
+                  <IconComponent size={20} color={themeMode === mode ? theme.colors.primary : theme.colors.text} />
+                  <View className="flex-1 ml-3">
+                    <Text className="text-base font-semibold text-text mb-1">
+                      {mode === 'light' ? 'Light Mode' : mode === 'dark' ? 'Dark Mode' : 'System Default'}
+                    </Text>
+                    <Text className="text-xs text-textSecondary">
+                      {mode === 'light' ? 'Always use light theme' : 
+                       mode === 'dark' ? 'Always use dark theme' : 
+                       'Follow system settings'}
+                    </Text>
+                  </View>
+                  {themeMode === mode && (
+                    <CheckCircle2 size={20} color={theme.colors.primary} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
+        </View>
+      </Modal>
+
+      {/* Edit Profile Modal */}
+      <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
+        <View className="flex-1 bg-background">
+          <View className="flex-row justify-between items-center px-5 py-4 border-b border-border">
+            <TouchableOpacity onPress={() => setShowEditModal(false)}>
+              <X size={20} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold text-text">
+              Edit Profile
+            </Text>
+            <TouchableOpacity onPress={handleEditProfile}>
+              <Text className="text-primary font-semibold">Save</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView className="flex-1 p-5">
+            <View className="space-y-4">
+              <View>
+                <Text className="text-sm font-medium text-text mb-2">Name</Text>
+                <TextInput
+                  className="bg-card border border-border rounded-xl p-4 text-text"
+                  value={editFormData.name}
+                  onChangeText={(text) => setEditFormData({ ...editFormData, name: text })}
+                  placeholder="Enter your name"
+                  placeholderTextColor={theme.colors.textSecondary}
+                />
+              </View>
+
+              <View>
+                <Text className="text-sm font-medium text-text mb-2">Email</Text>
+                <TextInput
+                  className="bg-card border border-border rounded-xl p-4 text-text"
+                  value={editFormData.email}
+                  onChangeText={(text) => setEditFormData({ ...editFormData, email: text })}
+                  placeholder="Enter your email"
+                  placeholderTextColor={theme.colors.textSecondary}
+                  keyboardType="email-address"
+                />
+              </View>
+
+              <View>
+                <Text className="text-sm font-medium text-text mb-2">Phone</Text>
+                <TextInput
+                  className="bg-card border border-border rounded-xl p-4 text-text"
+                  value={editFormData.phone}
+                  onChangeText={(text) => setEditFormData({ ...editFormData, phone: text })}
+                  placeholder="Enter your phone number"
+                  placeholderTextColor={theme.colors.textSecondary}
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View>
+                <Text className="text-sm font-medium text-text mb-2">Employee ID</Text>
+                <TextInput
+                  className="bg-card border border-border rounded-xl p-4 text-text opacity-60"
+                  value={editFormData.employeeId}
+                  placeholder="Employee ID (Read-only)"
+                  placeholderTextColor={theme.colors.textSecondary}
+                  editable={false}
+                />
+              </View>
+            </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
