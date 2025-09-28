@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Bin2WinWorker",
+    "name": "Bin2Win Worker",
     "slug": "Bin2WinWorker",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -47,7 +47,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
@@ -66,15 +66,15 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Bin2Win to access your camera for QR scanning and photo evidence.",
-          "microphonePermission": "Allow Bin2Win to access microphone for video recording.",
+          "cameraPermission": "Allow Bin2Win Worker to access your camera for QR scanning and photo evidence.",
+          "microphonePermission": "Allow Bin2Win Worker to access microphone for video recording.",
           "recordAudioAndroid": true
         }
       ],
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Bin2Win to use your location for route tracking and SOS alerts.",
+          "locationAlwaysAndWhenInUsePermission": "Allow Bin2Win Worker to use your location for route tracking and SOS alerts.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
         }
