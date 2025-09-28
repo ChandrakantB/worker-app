@@ -36,28 +36,24 @@ function TabIcon({ name, color, focused }: TabIconProps) {
 export default function TabLayout() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const screenHeight = Dimensions.get('window').height;
 
-  // ULTIMATE Android fix - calculate based on screen size
+  // ✅ REVERTED - Back to original position (bottom: 0)
   const getTabBarConfig = () => {
     if (Platform.OS === 'android') {
-      // Android: Extra high values to ensure visibility
       return {
         height: 85,
         paddingBottom: 28,
         paddingTop: 12,
-        elevation: 100, // Maximum possible elevation
+        elevation: 100,
         contentPadding: 100,
         position: 'absolute' as const,
-        bottom: 0,
-        // Force above everything
+        bottom: 0, // ✅ BACK TO ORIGINAL
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: -8 },
         shadowOpacity: 0.8,
         shadowRadius: 16,
       };
     } else if (Platform.OS === 'ios') {
-      // iOS: Proper safe area handling
       const safeBottom = Math.max(insets.bottom, 0);
       return {
         height: 65 + safeBottom,
@@ -66,14 +62,13 @@ export default function TabLayout() {
         elevation: 0,
         contentPadding: 75 + safeBottom,
         position: 'absolute' as const,
-        bottom: 0,
+        bottom: 0, // ✅ BACK TO ORIGINAL
         shadowColor: theme.colors.shadow,
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
       };
     }
-    // Web fallback
     return {
       height: 70,
       paddingBottom: 16,
@@ -81,7 +76,7 @@ export default function TabLayout() {
       elevation: 0,
       contentPadding: 80,
       position: 'absolute' as const,
-      bottom: 0,
+      bottom: 0, // ✅ BACK TO ORIGINAL
     };
   };
 
@@ -100,16 +95,15 @@ export default function TabLayout() {
           paddingHorizontal: 4,
           height: tabConfig.height,
           position: tabConfig.position,
-          bottom: tabConfig.bottom,
+          bottom: tabConfig.bottom, // ✅ Now back to 0px
           left: 0,
           right: 0,
           elevation: tabConfig.elevation,
-          zIndex: 999999, // Maximum z-index
+          zIndex: 999999,
           shadowColor: tabConfig.shadowColor,
           shadowOffset: tabConfig.shadowOffset,
           shadowOpacity: tabConfig.shadowOpacity,
           shadowRadius: tabConfig.shadowRadius,
-          // Android-specific overrides
           ...(Platform.OS === 'android' && {
             borderTopWidth: 2,
             borderTopColor: theme.colors.primary,
@@ -139,6 +133,7 @@ export default function TabLayout() {
         },
       }}
     >
+      {/* Tab screens remain the same */}
       <Tabs.Screen
         name="index"
         options={{

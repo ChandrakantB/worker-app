@@ -1,39 +1,174 @@
 import React, { useState } from 'react';
-import { Text, View, ScrollView, TouchableOpacity, Alert, Dimensions, Vibration } from 'react-native';
+import { 
+  Text, 
+  View, 
+  ScrollView, 
+  TouchableOpacity, 
+  Alert, 
+  Dimensions, 
+  Vibration, 
+  Linking, 
+  Modal 
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWorkerData } from '../../contexts/worker/WorkerDataContext';
 import { useTheme } from '../../contexts/theme/ThemeContext';
-import { useNotifications } from '../../hooks/useNotifications';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import { SOSService } from '../../services/emergency/SOSService';
 import CustomHeader from '../../components/navigation/CustomHeader';
+import { router } from 'expo-router';
 import {
-  Activity, AlertTriangle, AlertCircle, CheckCircle2, Circle, MapPin, Trash2, Target,
-  TrendingUp, Zap, Shield, Timer, Calendar, BarChart3, Gauge, Route, Play, Pause,
-  ChevronRight, RefreshCw, Siren, PhoneCall, Phone, Signal, WifiOff
+  MapPin, 
+  Route, 
+  Siren, 
+  Play, 
+  ChevronRight, 
+  BarChart3, 
+  ClipboardList,
+  AlertCircle, 
+  CheckCircle2, 
+  Youtube, 
+  Book, 
+  ListTodo, 
+  Star, 
+  Clock,
+  X,
+  ExternalLink,
+  GraduationCap,
+  Shield,
+  BookOpen,
+  Award
 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
+// Real Government Training Videos (same as Profile)
+const GOVERNMENT_TRAINING_MODULES = [
+  {
+    id: 1,
+    title: 'Swachh Bharat Mission Training',
+    description: 'Official training module on Swachh Bharat Mission Gramin',
+    duration: '45 mins',
+    level: 'Beginner',
+    provider: 'Govt of India',
+    youtubeUrl: 'https://www.youtube.com/watch?v=j-DcClEvwfo',
+    thumbnailColor: '#3b82f6',
+    icon: GraduationCap
+  },
+  {
+    id: 2,
+    title: 'Municipal Solid Waste Management',
+    description: 'NPTEL IIT Guwahati comprehensive course on waste management',
+    duration: '52 mins',
+    level: 'Intermediate',
+    provider: 'NPTEL IIT Guwahati',
+    youtubeUrl: 'https://www.youtube.com/watch?v=IBlFQgBX5ZQ',
+    thumbnailColor: '#10b981',
+    icon: BookOpen
+  },
+  {
+    id: 3,
+    title: 'Solid Waste Management Rules 2016',
+    description: 'Understanding India\'s Waste Management Rules by CSE',
+    duration: '2+ hours',
+    level: 'Advanced',
+    provider: 'Centre for Science and Environment',
+    youtubeUrl: 'https://www.youtube.com/@SolidWasteMOOC',
+    thumbnailColor: '#f59e0b',
+    icon: Shield
+  },
+  {
+    id: 4,
+    title: 'Waste Management Safety Training',
+    description: 'Safety protocols for waste collection and handling',
+    duration: '35 mins',
+    level: 'Essential',
+    provider: 'Safety Training Institute',
+    youtubeUrl: 'https://www.youtube.com/watch?v=cqJ-ZM4UZNk',
+    thumbnailColor: '#dc2626',
+    icon: Shield
+  },
+  {
+    id: 5,
+    title: 'India\'s Solid Waste Strategy',
+    description: 'National strategy for self-reliant waste management',
+    duration: '25 mins',
+    level: 'Policy',
+    provider: 'Science for Self-Reliant India',
+    youtubeUrl: 'https://www.youtube.com/watch?v=F2RdvQsFRPk',
+    thumbnailColor: '#10b981',
+    icon: BarChart3
+  },
+  {
+    id: 6,
+    title: 'iGOT Karmayogi Swachhata Module',
+    description: 'Official government e-learning module with certification',
+    duration: '3-4 hours',
+    level: 'Certification',
+    provider: 'iGOT Karmayogi Platform',
+    youtubeUrl: 'https://www.youtube.com/watch?v=5Q38AKJfs20',
+    thumbnailColor: '#3b82f6',
+    icon: Award
+  }
+];
+
+const QUIZ_QUESTIONS = [
+  {
+    q: 'What color bin is meant for organic waste?',
+    options: ['Blue', 'Green', 'Red', 'Yellow'],
+    answer: 'Green'
+  },
+  {
+    q: 'Which of these is hazardous waste?',
+    options: ['Vegetable peels', 'Broken glass', 'Plastic bottles', 'Paper'],
+    answer: 'Broken glass'
+  },
+  {
+    q: 'How often should waste collection vehicles be cleaned?',
+    options: ['Weekly', 'Daily', 'Monthly', 'When dirty'],
+    answer: 'Daily'
+  },
+  {
+    q: 'What PPE is essential for waste collection workers?',
+    options: ['Gloves only', 'Mask only', 'Gloves, mask, boots', 'None required'],
+    answer: 'Gloves, mask, boots'
+  }
+];
+
 export default function DashboardScreen() {
-  const { worker, assignedTasks, activeTask, completedTasks, updateWorkerStatus } = useWorkerData();
+  const { worker, assignedTasks, activeTask, completedTasks } = useWorkerData();
   const { theme } = useTheme();
   const { isOnline, syncStatus } = useOfflineSync();
   const insets = useSafeAreaInsets();
+  
   const [sosLoading, setSosLoading] = useState(false);
+  const [showDutyModal, setShowDutyModal] = useState(false);
+  const [showTrainingModal, setShowTrainingModal] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizStep, setQuizStep] = useState(0);
+  const [quizScore, setQuizScore] = useState(0);
 
-  // Calculate safe bottom padding for tab bar
-  const tabBarHeight = 80; // Android tab bar height
-  const safeBottomPadding = Math.max(insets.bottom + 65, tabBarHeight); // iOS: insets + 65, Android: 80
+  // Navigation functions
+  const goToMap = () => router.push('/map');
+  const goToReports = () => router.push('/reports');
+  const goToTasks = () => router.push('/tasks');
+
+  const handleTrainingModulePress = async (module) => {
+    try {
+      await Linking.openURL(module.youtubeUrl);
+    } catch (error) {
+      Alert.alert('Error', 'Could not open training video. Please check your internet connection.');
+    }
+  };
 
   const handleSOS = () => {
-    Vibration.vibrate([0, 100, 100, 100]);
+    Vibration.vibrate([0, 100, 50, 100]);
     Alert.alert(
       '🚨 Emergency SOS',
-      'This will immediately alert supervisors and emergency services with your location. Use only for real emergencies.',
+      'Alert supervisors/emergency with your location.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Send Emergency Alert', style: 'destructive', onPress: sendSOSAlert }
+        { text: 'Send SOS', style: 'destructive', onPress: sendSOSAlert }
       ]
     );
   };
@@ -41,372 +176,747 @@ export default function DashboardScreen() {
   const sendSOSAlert = async () => {
     if (!worker) return;
     setSosLoading(true);
-    
     try {
       Vibration.vibrate([0, 200, 100, 200]);
       const success = await SOSService.sendEmergencyAlert(worker.id, worker.name, 'general');
-      
       Alert.alert(
-        success ? '✅ Emergency Alert Sent' : '❌ Alert Failed',
-        success 
-          ? 'Help is on the way! Emergency services and supervisors have been notified.\n\nYour location has been shared.\n\nStay calm and stay safe.' 
-          : 'Emergency alert could not be sent. Please try again or call emergency services directly.',
-        success 
-          ? [{ text: 'OK' }]
-          : [
-              { text: 'Retry', onPress: sendSOSAlert },
-              { text: 'Call 108', onPress: () => console.log('Direct emergency call') }
-            ]
+        success ? '✅ Sent' : '❌ Failed',
+        success ? 'Help is on the way! Location shared.' : 'Alert failed. Try again or call 108.',
+        [{ text: 'OK' }]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send emergency alert. Please call 108 directly.');
     } finally {
       setSosLoading(false);
     }
   };
 
-  const toggleDutyStatus = () => {
-    if (!worker) return;
-    Alert.alert(
-      worker.isOnDuty ? 'Go Off Duty?' : 'Go On Duty?',
-      worker.isOnDuty ? 'You will stop receiving new tasks' : 'You will start receiving new tasks',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Confirm', onPress: () => updateWorkerStatus(!worker.isOnDuty) }
-      ]
-    );
+  const currentQuestion = QUIZ_QUESTIONS[quizStep] || null;
+  
+  const handleQuizAnswer = (selected: string) => {
+    if (selected === currentQuestion.answer) setQuizScore(score => score + 1);
+    setQuizStep(step => step + 1);
   };
 
-  const getTasksByPriority = () => ({
-    urgent: assignedTasks.filter(task => task.priority === 'urgent').length,
-    high: assignedTasks.filter(task => task.priority === 'high').length,
-    medium: assignedTasks.filter(task => task.priority === 'medium').length,
-    low: assignedTasks.filter(task => task.priority === 'low').length,
-  });
-
-  const getCompletionRate = () => {
-    const total = assignedTasks.length + completedTasks.length;
-    return total > 0 ? Math.round((completedTasks.length / total) * 100) : 0;
-  };
-
-  const taskPriority = getTasksByPriority();
-  const completionRate = getCompletionRate();
-
-  const handleMenuPress = () => {
-    console.log('Menu pressed - Add drawer/menu logic here');
-  };
-
-  const handleNotificationPress = () => {
-    console.log('Notifications pressed - Navigate to notifications screen');
-  };
-
-  const handleSettingsPress = () => {
-    console.log('Settings pressed - Navigate to settings screen');
+  const resetQuiz = () => {
+    setQuizStep(0);
+    setQuizScore(0);
+    setShowQuiz(false);
   };
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <CustomHeader
         title="Dashboard"
         subtitle={`Welcome back, ${worker?.name || 'Worker'}!`}
-        showNotifications={true}
-        showSettings={true}
-        showConnectionStatus={true}
-        onMenuPress={handleMenuPress}
-        onNotificationPress={handleNotificationPress}
-        onSettingsPress={handleSettingsPress}
+        showNotifications
+        showSettings
+        showConnectionStatus
       />
       
-      <ScrollView 
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ 
-          paddingBottom: safeBottomPadding + 20 // Extra 20px padding for breathing room
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingBottom: Math.max(insets.bottom + 65, 80) + 20,
         }}
+        showsVerticalScrollIndicator={false}
       >
-        <View className="p-5">
-          {/* Status Overview Cards */}
-          <View className="flex-row mb-5 gap-3">
-            {/* Duty Status Card */}
+        <View style={{ padding: 20 }}>
+          {/* Map/Area */}
+          <View style={{
+            backgroundColor: theme.colors.card,
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            elevation: 4,
+            borderWidth: 1,
+            borderColor: theme.colors.border
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <MapPin size={20} color={theme.colors.primary} />
+              <Text style={{
+                marginLeft: 12,
+                fontSize: 18,
+                fontWeight: '600',
+                color: theme.colors.text
+              }}>
+                Route & Area Highlights
+              </Text>
+            </View>
+            <Text style={{
+              fontSize: 12,
+              color: theme.colors.textSecondary,
+              marginBottom: 12
+            }}>
+              See today's assigned route and area alerts.
+            </Text>
             <TouchableOpacity
-              onPress={toggleDutyStatus}
-              className={`flex-1 bg-card rounded-2xl p-4 border-2 shadow-sm ${
-                worker?.isOnDuty ? 'border-success' : 'border-border'
-              }`}
+              onPress={goToMap}
+              style={{
+                backgroundColor: theme.colors.primary,
+                borderRadius: 12,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
               activeOpacity={0.8}
             >
-              <View className="flex-row items-center mb-3">
-                {worker?.isOnDuty ? (
-                  <Play size={20} color={theme.colors.success} />
-                ) : (
-                  <Pause size={20} color={theme.colors.textSecondary} />
-                )}
-                <Text className={`ml-2 text-sm font-semibold ${
-                  worker?.isOnDuty ? 'text-success' : 'text-textSecondary'
-                }`}>
-                  {worker?.isOnDuty ? 'ON DUTY' : 'OFF DUTY'}
-                </Text>
-              </View>
-              <Text className="text-xs text-textSecondary mb-2">
-                {worker?.department || 'Department'}
+              <Route size={18} color="white" />
+              <Text style={{
+                color: 'white',
+                marginLeft: 8,
+                fontWeight: 'bold'
+              }}>
+                Open Route & Map
               </Text>
-              <View className="flex-row items-center">
-                <Text className="text-xs text-textSecondary flex-1">
-                  Tap to toggle
-                </Text>
-                <ChevronRight size={14} color={theme.colors.textSecondary} />
-              </View>
             </TouchableOpacity>
-
-            {/* Connection Status Card */}
-            <View className={`flex-1 bg-card rounded-2xl p-4 border-2 shadow-sm ${
-              isOnline ? 'border-success' : 'border-danger'
-            }`}>
-              <View className="flex-row items-center mb-3">
-                {isOnline ? (
-                  <Signal size={20} color={theme.colors.success} />
-                ) : (
-                  <WifiOff size={20} color={theme.colors.danger} />
-                )}
-                <Text className={`ml-2 text-sm font-semibold ${
-                  isOnline ? 'text-success' : 'text-danger'
-                }`}>
-                  {isOnline ? 'ONLINE' : 'OFFLINE'}
-                </Text>
-              </View>
-              <Text className="text-xs text-textSecondary mb-2">Sync Status</Text>
-              <Text className="text-xs text-textSecondary">
-                {syncStatus.queueCount} pending
-              </Text>
-            </View>
           </View>
 
-          {/* Emergency SOS Section - Enhanced */}
-          <View className="bg-card rounded-3xl p-5 mb-6 shadow-lg border-2 border-danger/20">
-            <View className="flex-row items-center mb-4">
-              <Shield size={24} color={theme.colors.danger} />
-              <Text className="text-lg font-bold text-text ml-3">
-                Emergency Services
+          {/* Reports */}
+          <View style={{
+            backgroundColor: theme.colors.card,
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            elevation: 4,
+            borderWidth: 1,
+            borderColor: theme.colors.border
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <ClipboardList size={20} color={theme.colors.warning} />
+              <Text style={{
+                marginLeft: 12,
+                fontSize: 18,
+                fontWeight: '600',
+                color: theme.colors.text
+              }}>
+                Citizen Reports
               </Text>
             </View>
+            <Text style={{
+              fontSize: 12,
+              color: theme.colors.textSecondary,
+              marginBottom: 12
+            }}>
+              New improper segregation or illegal dumping reports in your area.
+            </Text>
+            <TouchableOpacity
+              onPress={goToReports}
+              style={{
+                backgroundColor: theme.colors.warning,
+                borderRadius: 12,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              activeOpacity={0.8}
+            >
+              <AlertCircle size={18} color="white" />
+              <Text style={{
+                color: 'white',
+                marginLeft: 8,
+                fontWeight: 'bold'
+              }}>
+                Report Improper Segregation
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-            {/* Main SOS Button */}
+          {/* SOS */}
+          <View style={{
+            backgroundColor: theme.colors.card,
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            elevation: 4,
+            borderWidth: 1,
+            borderColor: theme.colors.border
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Siren size={20} color={theme.colors.danger} />
+              <Text style={{
+                marginLeft: 12,
+                fontSize: 18,
+                fontWeight: '600',
+                color: theme.colors.text
+              }}>
+                Emergency SOS
+              </Text>
+            </View>
+            <Text style={{
+              fontSize: 12,
+              color: theme.colors.textSecondary,
+              marginBottom: 12
+            }}>
+              In danger? Tap below to send emergency alert.
+            </Text>
             <TouchableOpacity
               onPress={handleSOS}
               disabled={sosLoading}
-              className={`bg-danger rounded-2xl p-5 items-center shadow-xl mb-4 ${
-                sosLoading ? 'opacity-70' : ''
-              }`}
+              style={{
+                backgroundColor: theme.colors.danger,
+                borderRadius: 12,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: sosLoading ? 0.6 : 1
+              }}
               activeOpacity={0.8}
             >
-              <View className="flex-row items-center mb-2">
-                {sosLoading ? (
-                  <RefreshCw size={32} color="white" className="mr-3 animate-spin" />
-                ) : (
-                  <Siren size={32} color="white" className="mr-3" />
-                )}
-                <Text className="text-white text-xl font-extrabold tracking-wider">
-                  {sosLoading ? 'SENDING...' : 'EMERGENCY SOS'}
-                </Text>
-              </View>
-              <Text className="text-white/90 text-sm text-center tracking-wide leading-5">
-                {sosLoading 
-                  ? 'Alerting supervisors and emergency services with your location' 
-                  : 'Tap for immediate assistance • Use only in real emergencies'
-                }
+              <Siren size={18} color="white" />
+              <Text style={{
+                color: 'white',
+                marginLeft: 8,
+                fontWeight: 'bold'
+              }}>
+                {sosLoading ? 'SENDING...' : 'Trigger SOS Now'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Duty & Shift */}
+          <View style={{
+            backgroundColor: theme.colors.card,
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            elevation: 4,
+            borderWidth: 1,
+            borderColor: theme.colors.border
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Clock size={20} color={theme.colors.success} />
+              <Text style={{
+                marginLeft: 12,
+                fontSize: 18,
+                fontWeight: '600',
+                color: theme.colors.text
+              }}>
+                Duty Status & Timings
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowDutyModal(true)}
+              style={{
+                backgroundColor: theme.colors.success,
+                borderRadius: 12,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              activeOpacity={0.8}
+            >
+              <Clock size={18} color="white" />
+              <Text style={{
+                color: 'white',
+                marginLeft: 8,
+                fontWeight: 'bold'
+              }}>
+                View Weekly Duty/Route
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Training & Modules */}
+          <View style={{
+            backgroundColor: theme.colors.card,
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 24,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            elevation: 4,
+            borderWidth: 1,
+            borderColor: theme.colors.border
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <GraduationCap size={20} color={theme.colors.secondary} />
+              <Text style={{
+                marginLeft: 12,
+                fontSize: 18,
+                fontWeight: '600',
+                color: theme.colors.text
+              }}>
+                Government Training Videos
+              </Text>
+            </View>
+            <Text style={{
+              fontSize: 12,
+              color: theme.colors.textSecondary,
+              marginBottom: 16
+            }}>
+              Watch official government training modules or take a quick quiz.
+            </Text>
+
+            {/* Quick Access to Top 3 Training Videos */}
+            <View style={{ marginBottom: 16 }}>
+              {GOVERNMENT_TRAINING_MODULES.slice(0, 3).map(module => {
+                const IconComponent = module.icon;
+                return (
+                  <TouchableOpacity
+                    key={module.id}
+                    onPress={() => handleTrainingModulePress(module)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      marginBottom: 8,
+                      padding: 12,
+                      borderRadius: 8,
+                      backgroundColor: theme.colors.primary + '10',
+                      borderWidth: 1,
+                      borderColor: theme.colors.primary + '20'
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <IconComponent size={16} color={module.thumbnailColor} />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{
+                        color: theme.colors.text,
+                        fontWeight: '600',
+                        fontSize: 14
+                      }}>
+                        {module.title}
+                      </Text>
+                      <Text style={{
+                        color: theme.colors.textSecondary,
+                        fontSize: 11
+                      }}>
+                        {module.duration} • {module.level}
+                      </Text>
+                    </View>
+                    <ExternalLink size={14} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* View All Training Button */}
+            <TouchableOpacity
+              onPress={() => setShowTrainingModal(true)}
+              style={{
+                backgroundColor: theme.colors.secondary,
+                borderRadius: 12,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16
+              }}
+              activeOpacity={0.8}
+            >
+              <Youtube size={18} color="white" />
+              <Text style={{
+                color: 'white',
+                marginLeft: 8,
+                fontWeight: 'bold'
+              }}>
+                View All Training Videos
               </Text>
             </TouchableOpacity>
 
-            {/* Emergency Contacts Grid */}
-            <View className="flex-row gap-3">
-              <TouchableOpacity 
-                className="flex-1 bg-background rounded-xl p-3 items-center active:bg-border"
-                activeOpacity={0.7}
+            {/* Quiz Section */}
+            {!showQuiz ? (
+              <TouchableOpacity
+                onPress={() => { 
+                  setShowQuiz(true); 
+                  setQuizStep(0); 
+                  setQuizScore(0); 
+                }}
+                style={{
+                  backgroundColor: theme.colors.primary,
+                  borderRadius: 12,
+                  padding: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                activeOpacity={0.8}
               >
-                <PhoneCall size={16} color={theme.colors.danger} className="mb-1" />
-                <Text className="text-xs font-semibold text-text">Emergency</Text>
-                <Text className="text-xs text-textSecondary">108</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                className="flex-1 bg-background rounded-xl p-3 items-center active:bg-border"
-                activeOpacity={0.7}
-              >
-                <Phone size={16} color={theme.colors.primary} className="mb-1" />
-                <Text className="text-xs font-semibold text-text">Supervisor</Text>
-                <Text className="text-xs text-textSecondary">Available</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Performance Metrics */}
-          <View className="bg-card rounded-2xl p-5 mb-5 shadow-sm">
-            <View className="flex-row items-center mb-5">
-              <Gauge size={24} color={theme.colors.text} />
-              <Text className="text-lg font-bold text-text ml-3">
-                Performance Overview
-              </Text>
-            </View>
-
-            {/* Stats Grid - Responsive */}
-            <View className="flex-row flex-wrap gap-3">
-              {[
-                { icon: Target, value: assignedTasks.length, label: 'Assigned Tasks', color: theme.colors.primary },
-                { icon: CheckCircle2, value: completedTasks.length, label: 'Completed', color: theme.colors.success },
-                { icon: TrendingUp, value: `${completionRate}%`, label: 'Completion Rate', color: theme.colors.warning },
-                { icon: Calendar, value: Math.floor(Math.random() * 30) + 1, label: 'Working Days', color: theme.colors.secondary }
-              ].map((stat, index) => {
-                const IconComponent = stat.icon;
-                return (
-                  <View 
-                    key={index}
-                    className="bg-background rounded-xl p-4 items-center flex-1 min-w-[120px]"
-                    style={{ minWidth: (width - 70) / 2 }}
-                  >
-                    <IconComponent size={24} color={stat.color} className="mb-2" />
-                    <Text className="text-2xl font-bold text-text mb-1">
-                      {stat.value}
-                    </Text>
-                    <Text className="text-xs text-textSecondary text-center leading-4">
-                      {stat.label}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Active Task Section */}
-          <View className="bg-card rounded-2xl p-5 mb-5 shadow-sm">
-            <View className="flex-row items-center mb-4">
-              <Activity size={24} color={theme.colors.text} />
-              <Text className="text-lg font-bold text-text ml-3">
-                Current Task
-              </Text>
-            </View>
-
-            {activeTask ? (
-              <View className="bg-inProgress/15 rounded-xl p-4 border-l-4 border-inProgress">
-                <Text className="text-base font-semibold text-text mb-2">
-                  {activeTask.type.charAt(0).toUpperCase() + activeTask.type.slice(1)} Task
+                <ListTodo size={18} color="white" />
+                <Text style={{
+                  color: 'white',
+                  marginLeft: 8,
+                  fontWeight: 'bold'
+                }}>
+                  Start Knowledge Quiz
                 </Text>
-                
-                <View className="flex-row items-center mb-1.5">
-                  <MapPin size={14} color={theme.colors.textSecondary} />
-                  <Text className="text-sm text-textSecondary ml-1.5 flex-1">
-                    {activeTask.location.address}
-                  </Text>
-                </View>
-
-                <View className="flex-row items-center mb-3">
-                  <Trash2 size={14} color={theme.colors.textSecondary} />
-                  <Text className="text-sm text-textSecondary ml-1.5">
-                    {activeTask.wasteType} • {activeTask.estimatedQuantity}
-                  </Text>
-                </View>
-
-                <View className="flex-row items-center justify-between">
-                  <View className="bg-inProgress px-2 py-1 rounded-md">
-                    <Text className="text-white text-xs font-semibold">IN PROGRESS</Text>
-                  </View>
-                  <View className="flex-row items-center">
-                    <Timer size={16} color={theme.colors.textSecondary} />
-                    <Text className="text-xs text-textSecondary ml-1">
-                      Started 25 min ago
-                    </Text>
-                  </View>
-                </View>
-              </View>
+              </TouchableOpacity>
             ) : (
-              <View className="bg-background rounded-xl p-5 items-center border-2 border-dashed border-border">
-                <Circle size={32} color={theme.colors.textSecondary} className="mb-3" />
-                <Text className="text-base text-textSecondary text-center mb-1">
-                  No active task
-                </Text>
-                <Text className="text-xs text-textSecondary text-center leading-4">
-                  New tasks will appear here when assigned
-                </Text>
+              <View style={{
+                backgroundColor: theme.colors.background,
+                borderRadius: 12,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: theme.colors.border
+              }}>
+                {quizStep < QUIZ_QUESTIONS.length ? (
+                  <>
+                    <View style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 16
+                    }}>
+                      <Text style={{
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        color: theme.colors.text
+                      }}>
+                        Question {quizStep + 1} of {QUIZ_QUESTIONS.length}
+                      </Text>
+                      <TouchableOpacity onPress={resetQuiz}>
+                        <X size={20} color={theme.colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={{
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: theme.colors.text,
+                      marginBottom: 16
+                    }}>
+                      {currentQuestion.q}
+                    </Text>
+                    {currentQuestion.options.map(option => (
+                      <TouchableOpacity
+                        key={option}
+                        onPress={() => handleQuizAnswer(option)}
+                        style={{
+                          marginBottom: 8,
+                          padding: 12,
+                          borderRadius: 8,
+                          backgroundColor: theme.colors.secondary + '10',
+                          borderWidth: 1,
+                          borderColor: theme.colors.secondary + '20'
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={{
+                          color: theme.colors.text,
+                          fontWeight: '500'
+                        }}>
+                          {option}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                ) : (
+                  <View style={{ alignItems: 'center' }}>
+                    <Star size={40} color={theme.colors.success} style={{ marginBottom: 16 }} />
+                    <Text style={{
+                      fontSize: 20,
+                      fontWeight: 'bold',
+                      color: theme.colors.success,
+                      marginBottom: 8
+                    }}>
+                      Quiz Complete!
+                    </Text>
+                    <Text style={{
+                      fontSize: 16,
+                      color: theme.colors.text,
+                      marginBottom: 16
+                    }}>
+                      Score: {quizScore} / {QUIZ_QUESTIONS.length}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={resetQuiz}
+                      style={{
+                        backgroundColor: theme.colors.primary,
+                        paddingHorizontal: 20,
+                        paddingVertical: 12,
+                        borderRadius: 8
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={{
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}>
+                        Take Again
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             )}
           </View>
+        </View>
+      </ScrollView>
 
-          {/* Priority Breakdown */}
-          <View className="bg-card rounded-2xl p-5 mb-5 shadow-sm">
-            <View className="flex-row items-center mb-4">
-              <BarChart3 size={24} color={theme.colors.text} />
-              <Text className="text-lg font-bold text-text ml-3">
-                Task Priorities
-              </Text>
-            </View>
-
-            <View className="gap-3">
-              {[
-                { key: 'urgent', label: 'Urgent', count: taskPriority.urgent, color: theme.colors.danger, icon: AlertTriangle },
-                { key: 'high', label: 'High', count: taskPriority.high, color: theme.colors.warning, icon: AlertCircle },
-                { key: 'medium', label: 'Medium', count: taskPriority.medium, color: theme.colors.primary, icon: Circle },
-                { key: 'low', label: 'Low', count: taskPriority.low, color: theme.colors.success, icon: CheckCircle2 }
-              ].map((priority) => {
-                const IconComponent = priority.icon;
-                return (
-                  <View key={priority.key} className="flex-row items-center bg-background rounded-xl p-3">
-                    <IconComponent size={18} color={priority.color} />
-                    <Text className="text-sm font-semibold text-text ml-3 flex-1">
-                      {priority.label}
-                    </Text>
-                    <View 
-                      className="rounded-xl px-2 py-1 min-w-[28px] items-center"
-                      style={{ backgroundColor: priority.color }}
-                    >
-                      <Text className="text-white text-xs font-bold">
-                        {priority.count}
+      {/* Training Modules Modal */}
+      <Modal visible={showTrainingModal} animationType="slide" presentationStyle="pageSheet">
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.border
+          }}>
+            <TouchableOpacity onPress={() => setShowTrainingModal(false)}>
+              <X size={20} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '600',
+              color: theme.colors.text
+            }}>
+              Government Training Videos
+            </Text>
+            <View style={{ width: 20 }} />
+          </View>
+          
+          <ScrollView 
+            style={{ flex: 1 }}
+            contentContainerStyle={{ 
+              padding: 20, 
+              paddingBottom: Math.max(insets.bottom + 20, 50) 
+            }}
+          >
+            <Text style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: theme.colors.text,
+              marginBottom: 20
+            }}>
+              Official Training Modules
+            </Text>
+            
+            {GOVERNMENT_TRAINING_MODULES.map((module) => {
+              const IconComponent = module.icon;
+              
+              return (
+                <TouchableOpacity
+                  key={module.id}
+                  onPress={() => handleTrainingModulePress(module)}
+                  style={{
+                    backgroundColor: theme.colors.card,
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    shadowColor: '#000',
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    elevation: 3
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    marginBottom: 12
+                  }}>
+                    <View style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
+                      backgroundColor: module.thumbnailColor + '20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 12
+                    }}>
+                      <IconComponent size={24} color={module.thumbnailColor} />
+                    </View>
+                    
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontSize: 16,
+                        fontWeight: '600',
+                        color: theme.colors.text,
+                        marginBottom: 4
+                      }}>
+                        {module.title}
+                      </Text>
+                      <Text style={{
+                        fontSize: 13,
+                        color: theme.colors.textSecondary,
+                        lineHeight: 18
+                      }}>
+                        {module.description}
                       </Text>
                     </View>
+                    
+                    <ExternalLink size={16} color={theme.colors.textSecondary} />
                   </View>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Quick Actions - Final Section */}
-          <View className="bg-card rounded-2xl p-5 shadow-sm">
-            <View className="flex-row items-center mb-4">
-              <Zap size={24} color={theme.colors.text} />
-              <Text className="text-lg font-bold text-text ml-3">
-                Quick Actions
+                  
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center'
+                    }}>
+                      <Play size={14} color={theme.colors.textSecondary} />
+                      <Text style={{
+                        fontSize: 12,
+                        color: theme.colors.textSecondary,
+                        marginLeft: 4,
+                        marginRight: 12
+                      }}>
+                        {module.duration}
+                      </Text>
+                      
+                      <View style={{
+                        backgroundColor: module.thumbnailColor + '20',
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 8
+                      }}>
+                        <Text style={{
+                          fontSize: 10,
+                          color: module.thumbnailColor,
+                          fontWeight: '600'
+                        }}>
+                          {module.level}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <Text style={{
+                      fontSize: 10,
+                      color: theme.colors.textSecondary,
+                      fontStyle: 'italic'
+                    }}>
+                      {module.provider}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            
+            <View style={{
+              backgroundColor: theme.colors.primary + '20',
+              borderRadius: 12,
+              padding: 16,
+              marginTop: 20,
+              borderWidth: 1,
+              borderColor: theme.colors.primary + '40'
+            }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 8
+              }}>
+                <GraduationCap size={20} color={theme.colors.primary} />
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: theme.colors.text,
+                  marginLeft: 8
+                }}>
+                  Get Certified
+                </Text>
+              </View>
+              <Text style={{
+                fontSize: 12,
+                color: theme.colors.textSecondary,
+                lineHeight: 16
+              }}>
+                Complete the iGOT Karmayogi modules to earn official government certification for waste management training.
               </Text>
             </View>
+          </ScrollView>
+        </View>
+      </Modal>
 
-            <View className="flex-row gap-3">
-              <TouchableOpacity 
-                className="flex-1 bg-primary rounded-xl p-4 items-center shadow-sm active:scale-95"
-                activeOpacity={0.8}
+      {/* Weekly Duty Modal */}
+      <Modal visible={showDutyModal} animationType="slide" transparent>
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          justifyContent: 'flex-end'
+        }}>
+          <View style={{
+            backgroundColor: theme.colors.background,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            maxHeight: '70%',
+            padding: 20
+          }}>
+            <TouchableOpacity
+              onPress={() => setShowDutyModal(false)}
+              style={{
+                alignSelf: 'flex-end',
+                padding: 8,
+                marginBottom: 8
+              }}
+            >
+              <X size={20} color={theme.colors.text} />
+            </TouchableOpacity>
+            
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              marginBottom: 12,
+              color: theme.colors.primary
+            }}>
+              Weekly Duty Timings & Routes
+            </Text>
+            
+            <Text style={{
+              fontWeight: 'bold',
+              marginBottom: 16,
+              color: theme.colors.text
+            }}>
+              Shift: 6:00 AM - 2:00 PM
+            </Text>
+            
+            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, idx) => (
+              <View 
+                key={day} 
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  paddingVertical: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: theme.colors.border
+                }}
               >
-                <Target size={24} color="white" className="mb-2" />
-                <Text className="text-white text-sm font-semibold">
-                  View Tasks
+                <Text style={{ 
+                  color: theme.colors.text,
+                  fontWeight: '500'
+                }}>
+                  {day}:
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                className="flex-1 bg-secondary rounded-xl p-4 items-center shadow-sm active:scale-95"
-                activeOpacity={0.8}
-              >
-                <Route size={24} color="white" className="mb-2" />
-                <Text className="text-white text-sm font-semibold">
-                  Open Map
+                <Text style={{ 
+                  color: theme.colors.textSecondary 
+                }}>
+                  {['Sector 1', 'Sector 2', 'Sector 3, 4', 'Block A/B', 'Mall Road', 'Phases 1-2', 'Rest'][idx]}
                 </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Debug Info - Remove in production */}
-          <View className="mt-4 p-3 bg-textSecondary/10 rounded-lg">
-            <Text className="text-xs text-textSecondary text-center">
-              Safe Bottom: {safeBottomPadding}px • Tab Height: {tabBarHeight}px • Insets: {insets.bottom}px
+              </View>
+            ))}
+            
+            <Text style={{
+              marginTop: 20,
+              fontWeight: '500',
+              color: theme.colors.textSecondary,
+              fontSize: 12
+            }}>
+              Note: Sunday is usually for rest or backup/emergency routes.
             </Text>
           </View>
         </View>
-      </ScrollView>
+      </Modal>
     </View>
   );
 }

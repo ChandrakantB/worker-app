@@ -22,8 +22,8 @@ export default function LoginScreen() {
       // Mock authentication - replace with actual API call
       const mockWorker: Worker = {
         id: 'worker-001',
-        name: 'John Doe',
-        email: 'john.doe@bin2win.com',
+        name: 'Vikrant Kumar',
+        email: 'vikrantkumar@bin2win.com',
         phone: '+91 9876543210',
         employeeId: employeeId,
         department: 'driver',

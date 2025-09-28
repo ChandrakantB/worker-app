@@ -8,10 +8,13 @@ import 'react-native-reanimated';
 
 import { ThemeProvider } from '../contexts/theme/ThemeContext';
 import { WorkerDataProvider } from '../contexts/worker/WorkerDataContext';
-import { useNotifications } from '../hooks/useNotifications';
+// ❌ Remove this line:
+// import { useNotifications } from '../hooks/useNotifications';
 
 function AppWrapper({ children }: { children: React.ReactNode }) {
-  useNotifications();
+  // ❌ Remove this line:
+  // useNotifications();
+  
   return <>{children}</>;
 }
 
@@ -34,7 +37,6 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
               </Stack>
-              {/* FIXED: StatusBar that doesn't interfere with system time */}
               <StatusBar 
                 style={colorScheme === 'dark' ? 'light' : 'dark'}
                 translucent={false}

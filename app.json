@@ -29,7 +29,10 @@
       "navigationBar": {
         "visible": "sticky-immersive",
         "barStyle": "light-content"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "output": "static",
@@ -56,6 +59,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7d2d71c0-29f9-4bf8-b40c-e59cb7d5a020"
+      }
+    },
+    "owner": "banait"
   }
 }

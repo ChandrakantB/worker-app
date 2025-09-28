@@ -1,95 +1,95 @@
+// QRScanner.tsx (Updated with 50px bottom padding)
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
-import { Camera, CameraView } from 'expo-camera';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, Platform } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/theme/ThemeContext';
 
 interface QRScannerProps {
-  onQRScanned: (data: string) => void;
+  onScanned: (data: string) => void;
   onClose: () => void;
   isVisible: boolean;
 }
 
-export default function QRScanner({ onQRScanned, onClose, isVisible }: QRScannerProps) {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+export default function QRScanner({ onScanned, onClose, isVisible }: QRScannerProps) {
   const [scanned, setScanned] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    getCameraPermissions();
-  }, []);
-
-  const getCameraPermissions = async () => {
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    setHasPermission(status === 'granted');
-  };
+    if (isVisible) {
+      setScanned(false);
+    }
+  }, [isVisible]);
 
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     if (!scanned) {
       setScanned(true);
-      // Accept ANY QR code - no validation
-      onQRScanned(data);
+      onScanned(data);
     }
   };
 
   if (!isVisible) return null;
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Text style={{ color: theme.colors.text }}>Requesting camera permission...</Text>
+      <View style={[styles.centered, { backgroundColor: theme.background }]}>
+        <Text style={{ color: theme.text }}>Loading camera permissions...</Text>
       </View>
     );
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Text style={{ color: theme.colors.text, textAlign: 'center', marginBottom: 20 }}>
+      <View style={[styles.centered, { backgroundColor: theme.background, padding: 20 }]}>
+        <Text style={{ color: theme.text, textAlign: 'center', marginBottom: 20, fontSize: 16 }}>
           Camera permission is required to scan QR codes
         </Text>
-        <TouchableOpacity 
-          onPress={getCameraPermissions}
+        <TouchableOpacity
+          onPress={requestPermission}
           style={[styles.button, { backgroundColor: theme.colors.primary }]}
         >
-          <Text style={{ color: 'white', fontWeight: '600' }}>Grant Permission</Text>
+          <Text style={{ color: 'white', fontWeight: '600' }}>Grant Camera Permission</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom + 50, 50) }]}>
       <CameraView
         style={styles.camera}
         facing="back"
         onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+        barcodeScannerSettings={{
+          barcodeTypes: ['qr', 'pdf417'],
+        }}
       >
         <View style={styles.overlay}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeText}>✕</Text>
+              <Text style={styles.closeText}>×</Text>
             </TouchableOpacity>
-            <Text style={styles.title}>Scan Any QR Code</Text>
+            <Text style={styles.title}>Scan QR Code</Text>
             <View style={{ width: 30 }} />
           </View>
 
-          <View style={styles.scanFrame}>
-            <View style={styles.corner} />
-            <View style={[styles.corner, styles.topRight]} />
-            <View style={[styles.corner, styles.bottomLeft]} />
-            <View style={[styles.corner, styles.bottomRight]} />
+          <View style={styles.scanArea}>
+            <View style={styles.scanFrame}>
+              <View style={[styles.corner, styles.topLeft]} />
+              <View style={[styles.corner, styles.topRight]} />
+              <View style={[styles.corner, styles.bottomLeft]} />
+              <View style={[styles.corner, styles.bottomRight]} />
+            </View>
           </View>
 
           <View style={styles.instructions}>
-            <Text style={styles.instructionText}>
-              📱 Point camera at any QR code
-            </Text>
-            <Text style={styles.instructionSubText}>
-              Any QR code will work for testing
-            </Text>
+            <Text style={styles.instructionText}>Point your camera at a QR code</Text>
+            <Text style={styles.instructionSubText}>Position the QR code within the frame</Text>
             
             {scanned && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setScanned(false)}
                 style={[styles.button, { backgroundColor: theme.colors.primary, marginTop: 20 }]}
               >
@@ -104,14 +104,14 @@ export default function QRScanner({ onQRScanned, onClose, isVisible }: QRScanner
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  camera: { flex: 1, width: '100%' },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+  container: { flex: 1 },
+  camera: { flex: 1 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'android' ? 25 : 50,
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
@@ -119,65 +119,39 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-  title: { color: 'white', fontSize: 18, fontWeight: '600' },
-  scanFrame: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
+  closeText: { color: 'white', fontSize: 24, fontWeight: '900' },
+  title: { color: 'white', fontSize: 20, fontWeight: '700' },
+  scanArea: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scanFrame: { width: 250, height: 250, position: 'relative' },
   corner: {
     position: 'absolute',
     width: 40,
     height: 40,
     borderColor: '#3b82f6',
     borderWidth: 4,
-    top: -100,
-    left: -100,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
   },
-  topRight: {
-    right: -100,
-    left: 'auto',
-    borderLeftWidth: 0,
-    borderRightWidth: 4,
-    borderBottomWidth: 0,
-  },
-  bottomLeft: {
-    bottom: -100,
-    top: 'auto',
-    borderTopWidth: 0,
-    borderBottomWidth: 4,
-    borderRightWidth: 0,
-  },
-  bottomRight: {
-    bottom: -100,
-    right: -100,
-    top: 'auto',
-    left: 'auto',
-    borderTopWidth: 0,
-    borderLeftWidth: 0,
-    borderBottomWidth: 4,
-    borderRightWidth: 4,
-  },
+  topLeft: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
+  topRight: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
+  bottomLeft: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
+  bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
   instructions: { padding: 20, alignItems: 'center' },
   instructionText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    textAlign: 'center',
     marginBottom: 8,
+    textAlign: 'center',
   },
   instructionSubText: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
     textAlign: 'center',
+    marginBottom: 10,
   },
-  button: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
+  button: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
